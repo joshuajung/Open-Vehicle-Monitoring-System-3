@@ -679,7 +679,14 @@ void OvmsNetManager::ModemUp(std::string event, void* data)
   {
   m_connected_modem = true;
   SaveDNSServer(m_dns_modem);
+  ESP_LOGD(TAG, "JAJ Checkpoint: ModemUp 1");
   PrioritiseAndIndicate();
+  ESP_LOGD(TAG, "JAJ Checkpoint: ModemUp 2");
+
+  if(m_network_any)
+    {
+      ESP_LOGD(TAG, "JAJ Checkpoint: ModemUp 3");
+    }
 
   MyEvents.SignalEvent("network.modem.up",NULL);
 
@@ -721,7 +728,10 @@ void OvmsNetManager::ModemDown(std::string event, void* data)
       ESP_LOGI(TAG, "MODEM down (with WIFI client down): network connectivity has been lost");
       MyEvents.SignalEvent("network.down",NULL);
 
+      ESP_LOGD(TAG, "JAJ Checkpoint: ModemDown 1");
+
 #ifdef CONFIG_OVMS_SC_GPL_MONGOOSE
+      ESP_LOGD(TAG, "JAJ Checkpoint: ModemDown 2");
       StopMongooseTask();
 #endif //#ifdef CONFIG_OVMS_SC_GPL_MONGOOSE
       }
@@ -862,11 +872,13 @@ void OvmsNetManager::SetNetType(std::string type)
 
 void SafePrioritiseAndIndicate(void* ctx)
   {
+  ESP_LOGD(TAG, "JAJ Checkpoint: SafePrioritiseAndIndicate");
   MyNetManager.DoSafePrioritiseAndIndicate();
   }
 
 void OvmsNetManager::PrioritiseAndIndicate()
   {
+  ESP_LOGD(TAG, "JAJ Checkpoint: OvmsNetManager::SafePrioritiseAndIndicate");
   tcpip_callback_with_block(SafePrioritiseAndIndicate, NULL, 1);
   }
 
@@ -875,9 +887,19 @@ void OvmsNetManager::DoSafePrioritiseAndIndicate()
   const char *search = NULL;
   ip_addr_t* dns = NULL;
 
+  ESP_LOGD(TAG, "JAJ Checkpoint: DoSafePrioritiseAndIndicate 1");
+  if(m_connected_modem)
+    {
+      ESP_LOGD(TAG, "JAJ Checkpoint: DoSafePrioritiseAndIndicate 2");
+    }
+
   // A convenient place to keep track of connectivity in general
   m_connected_any = m_connected_wifi || m_connected_modem;
   m_network_any = m_connected_wifi || m_connected_modem || m_wifi_ap;
+  if(m_network_any)
+    {
+      ESP_LOGD(TAG, "JAJ Checkpoint: DoSafePrioritiseAndIndicate 3");
+    }
   StdMetrics.ms_m_net_connected->SetValue(m_connected_any);
 
 
@@ -936,11 +958,13 @@ void OvmsNetManager::DoSafePrioritiseAndIndicate()
 static void MongooseRawTask(void *pvParameters)
   {
   OvmsNetManager* me = (OvmsNetManager*)pvParameters;
+  ESP_LOGD(TAG, "JAJ Checkpoint: MongooseRawTask");
   me->MongooseTask();
   }
 
 void OvmsNetManager::MongooseTask()
   {
+    ESP_LOGD(TAG, "JAJ Checkpoint: MongooseTask 1");
   int pri, lastpri = CONFIG_OVMS_NETMAN_TASK_PRIORITY;
 
   // Initialise the mongoose manager
@@ -975,6 +999,7 @@ void OvmsNetManager::MongooseTask()
   m_mongoose_running = false;
 
   // Shutdown cleanly
+  ESP_LOGD(TAG, "JAJ Checkpoint: MongooseTask 2");
   ESP_LOGD(TAG, "MongooseTask stopping");
   MyEvents.SignalEvent("network.mgr.stop",NULL);
   mg_mgr_free(&m_mongoose_mgr);
@@ -994,25 +1019,38 @@ bool OvmsNetManager::MongooseRunning()
 
 void OvmsNetManager::StartMongooseTask()
   {
+  ESP_LOGD(TAG, "JAJ Checkpoint: StartMongooseTask 1");
   if (!m_mongoose_running)
     {
+    ESP_LOGD(TAG, "JAJ Checkpoint: StartMongooseTask 2");
     if (m_network_any)
       {
+      ESP_LOGD(TAG, "JAJ Checkpoint: StartMongooseTask 3");
       // wait for previous task to finish shutting down:
-      while (m_mongoose_task)
+      while (m_mongoose_task) 
+        {
+        ESP_LOGD(TAG, "JAJ Checkpoint: StartMongooseTask 4");
         vTaskDelay(pdMS_TO_TICKS(50));
+        }
       // start new task:
+      ESP_LOGD(TAG, "JAJ Checkpoint: StartMongooseTask 5");
       xTaskCreatePinnedToCore(MongooseRawTask, "OVMS NetMan",10*1024, (void*)this,
                               CONFIG_OVMS_NETMAN_TASK_PRIORITY, &m_mongoose_task, CORE(1));
+      ESP_LOGD(TAG, "JAJ Checkpoint: StartMongooseTask 6");
       AddTaskToMap(m_mongoose_task);
+      ESP_LOGD(TAG, "JAJ Checkpoint: StartMongooseTask 7");
       }
     }
   }
 
 void OvmsNetManager::StopMongooseTask()
   {
-  if (!m_network_any)
-    m_mongoose_running = false;
+  ESP_LOGD(TAG, "JAJ Checkpoint: StopMongooseTask 1");
+  if (!m_network_any) 
+    {
+      ESP_LOGD(TAG, "JAJ Checkpoint: StopMongooseTask 2");
+      m_mongoose_running = false;
+    }
   }
 
 void OvmsNetManager::ProcessJobs()
