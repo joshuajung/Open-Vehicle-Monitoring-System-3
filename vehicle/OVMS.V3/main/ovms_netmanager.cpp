@@ -878,9 +878,15 @@ void SafePrioritiseAndIndicate(void* ctx)
 
 void OvmsNetManager::PrioritiseAndIndicate()
   {
-  ESP_LOGD(TAG, "JAJ Checkpoint: OvmsNetManager::SafePrioritiseAndIndicate");
-  tcpip_callback_with_block(SafePrioritiseAndIndicate, NULL, 1);
-  }
+  ESP_LOGD(TAG, "JAJ Checkpoint: OvmsNetManager::SafePrioritiseAndIndicate 1");
+  if (tcpip_callback_with_block(SafePrioritiseAndIndicate, NULL, 1) == ERR_OK)
+    {
+      ESP_LOGD(TAG, "JAJ Checkpoint: OvmsNetManager::SafePrioritiseAndIndicate 2");
+      m_tcpip_callback_done.Take();
+      ESP_LOGD(TAG, "JAJ Checkpoint: OvmsNetManager::SafePrioritiseAndIndicate 3");
+    }  
+    ESP_LOGD(TAG, "JAJ Checkpoint: OvmsNetManager::SafePrioritiseAndIndicate 4");
+   }
 
 void OvmsNetManager::DoSafePrioritiseAndIndicate()
   {
@@ -927,6 +933,7 @@ void OvmsNetManager::DoSafePrioritiseAndIndicate()
   if (search == NULL)
     {
     SetNetType("none");
+    m_tcpip_callback_done.Give();
     return;
     }
 
@@ -947,10 +954,12 @@ void OvmsNetManager::DoSafePrioritiseAndIndicate()
         }
       netif_set_default(pri);
       SetDNSServer(dns);
+      m_tcpip_callback_done.Give();
       return;
       }
     }
   ESP_LOGE(TAG, "Inconsistent state: no interface of type '%s' found", search);
+  m_tcpip_callback_done.Give();
   }
 
 #ifdef CONFIG_OVMS_SC_GPL_MONGOOSE
